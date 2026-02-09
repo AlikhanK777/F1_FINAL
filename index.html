@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>F1 Admin Panel | Pro Photo Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --main-accent: #e10600; 
+            --bg-image: url('i.webp');
+            --glow: rgba(225, 6, 0, 0.6);
+            --f1-red-fixed: #e10600;
+        }
+
+        body.turbo-mode {
+            --main-accent: #00d2be; 
+            --bg-image: url('i2.webp');
+            --glow: rgba(0, 210, 190, 0.6);
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: var(--bg-image) no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            transition: 0.8s ease;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); 
+            z-index: -1;
+        }
+
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 0 30px var(--glow);
+            border: 3px solid var(--main-accent);
+            animation: zoomIn 0.3s ease-out;
+            max-width: 280px;
+            color: black;
+        }
+
+        .modal-content img {
+            width: 100%;
+            max-height: 380px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .modal-content h2 {
+            font-family: 'Racing Sans One', sans-serif;
+            margin: 5px 0 10px 0;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            color: var(--f1-red-fixed);
+        }
+
+        .close-btn {
+            background: #222;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .close-btn:hover { background: var(--main-accent); }
+
+        @keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* --- ИНТЕРФЕЙС ПАНЕЛИ --- */
+        .theme-toggle { position: fixed; top: 20px; right: 20px; background: var(--main-accent); color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-family: 'Racing Sans One', sans-serif; z-index: 100; box-shadow: 0 0 15px var(--glow); transition: 0.3s; }
+        h1 { font-family: 'Racing Sans One', sans-serif; color: var(--main-accent); text-transform: uppercase; font-size: 3.5rem; text-shadow: 0 0 20px var(--glow); margin-bottom: 20px; text-align: center; }
+        .login-card, .admin-panel { background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 15px; width: 380px; color: black; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8); text-align: center; }
+        .input-group { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        input { width: 90%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 8px; outline: none; box-sizing: border-box; }
+        input:focus { border-color: var(--main-accent); }
+        .btn-action { width: 100%; padding: 14px; background: var(--main-accent); color: white; border: none; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+        #driver-list { margin-top: 30px; width: 100%; max-width: 500px; }
+        .driver-item { background: rgba(21, 21, 30, 0.9); padding: 15px; margin-bottom: 12px; border-left: 6px solid var(--main-accent); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; cursor: pointer; }
+        .driver-name { color: white; font-weight: bold; font-size: 1.1rem; }
+        .driver-team { color: var(--f1-red-fixed); font-family: 'Racing Sans One'; font-size: 0.9rem; }
+        .driver-item:hover { transform: translateX(10px); box-shadow: 0 0 20px var(--glow); }
+        .status-badge { position: fixed; bottom: 15px; right: 15px; background: rgba(0,0,0,0.85); padding: 8px 16px; border-radius: 30px; font-size: 11px; border: 1px solid var(--main-accent); display: flex; align-items: center; gap: 10px; transition: 0.3s; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; transition: 0.5s; }
+    </style>
+</head>
+<body>
+
+    <div class="modal-overlay" id="driver-modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 id="modal-name">Driver</h2>
+            <img id="modal-img" src="LH.avif" alt="Driver Photo">
+            <button class="close-btn" onclick="closeModal()">CLOSE</button>
+        </div>
+    </div>
+
+    <button class="theme-toggle" onclick="toggleTurbo()">TURBO MODE</button>
+    <audio id="f1-sound" src="nyoom.mp3" preload="auto"></audio>
+
+    <h1>F1 Authentication</h1>
+
+    <div class="login-card" id="login-form">
+        <h3>Admin Access</h3>
+        <div class="input-group">
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+        </div>
+        <button class="btn-action" onclick="signIn()">Sign In</button>
+    </div>
+
+    <div class="admin-panel" id="admin-panel" style="display: none;">
+        <h3>Paddock Control</h3>
+        <button class="btn-action" onclick="getDrivers()">Show Drivers</button>
+        <button class="btn-action" style="margin-top:10px; background:#333;" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="driver-list"></div>
+
+    <div class="status-badge">
+        <div id="status-dot" class="dot" style="background: #555;"></div>
+        <span id="status-text">SYSTEM STATUS: CHECKING...</span>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:8080/api/";
+
+        function openPhoto(name, serverPhoto, isFirst) {
+            const modal = document.getElementById('driver-modal');
+            const modalImg = document.getElementById('modal-img');
+            const modalName = document.getElementById('modal-name');
+            
+            modalName.innerText = name;
+            
+            let photoPath = 'image.png'; 
+            const lowerName = name.toLowerCase();
+
+            
+            if (isFirst || lowerName.includes("hamilton") || lowerName.includes("alikhan")) {
+                photoPath = 'ak.png';
+            } 
+            
+            else if (serverPhoto) {
+                photoPath = serverPhoto;
+            } 
+           
+            else {
+                if (lowerName.includes("verstappen")) photoPath = 'MV.avif';
+                else if (lowerName.includes("leclerc")) photoPath = 'CL.avif';
+                else if (lowerName.includes("alonso")) photoPath = 'FA.avif';
+                else if (lowerName.includes("russell")) photoPath = 'GR.avif';
+            }
+
+            
+            modalImg.src = photoPath + "?v=" + new Date().getTime();
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('driver-modal').style.display = 'none';
+        }
+
+        async function checkApi() {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            try {
+                const res = await fetch(API_URL + "drivers", { method: 'GET' });
+                dot.style.background = "#00ff00";
+                dot.style.boxShadow = "0 0 10px #00ff00";
+                text.innerText = "SYSTEM STATUS: ONLINE";
+            } catch (e) {
+                dot.style.background = "#ff0000";
+                dot.style.boxShadow = "0 0 10px #ff0000";
+                text.innerText = "SYSTEM STATUS: OFFLINE";
+            }
+        }
+        setInterval(checkApi, 3000); checkApi();
+
+        function toggleTurbo() {
+            document.body.classList.toggle('turbo-mode');
+            const btn = document.querySelector('.theme-toggle');
+            btn.innerText = document.body.classList.contains('turbo-mode') ? "NORMAL MODE" : "TURBO MODE";
+        }
+
+        async function signIn() {
+            const u = document.getElementById("username").value;
+            const p = document.getElementById("password").value;
+            document.getElementById("f1-sound").play().catch(()=>{});
+            try {
+                const res = await fetch(API_URL + "auth/signin", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem("user", JSON.stringify(data));
+                    document.getElementById("login-form").style.display = "none";
+                    document.getElementById("admin-panel").style.display = "block";
+                    getDrivers();
+                } else { alert("Error: " + data.message); }
+            } catch (e) { alert("Server offline. Запусти node server.js!"); }
+        }
+
+        async function getDrivers() {
+            const user = JSON.parse(localStorage.getItem("user"));
+            if(!user) return;
+            try {
+                const res = await fetch(API_URL + "drivers", {
+                    headers: { "x-access-token": user.accessToken }
+                });
+                const drivers = await res.json();
+                const list = document.getElementById("driver-list");
+                list.innerHTML = "";
+
+                drivers.forEach((d, index) => {
+                    const item = document.createElement("div");
+                    item.className = "driver-item";
+                    
+                    
+                    item.onclick = () => openPhoto(d.name, d.photo, index === 0); 
+                    
+                    item.innerHTML = `
+                        <span class="driver-name">${d.name}</span>
+                        <span class="driver-team">${d.team}</span>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch (e) { console.error("Ошибка загрузки"); }
+        }
+
+        function logout() { localStorage.removeItem("user"); location.reload(); }
+        
+        if(localStorage.getItem("user")) {
+            document.getElementById("login-form").style.display = "none";
+            document.getElementById("admin-panel").style.display = "block";
+            getDrivers();
+        }
+    </script>
+</body>
+</html>
