@@ -89,7 +89,13 @@ This is a professional RESTful API built with **Node.js**, **Express**, and **Mo
 * **Database**: Managed via MongoDB Compass / Mongoose.
 
 ---
-
+## Project Structure
+* **[span_2](start_span)models/**: MongoDB schemas (User, Driver, Role)[span_2](end_span)
+* **[span_3](start_span)controllers/**: Business logic for handling requests[span_3](end_span)
+* **[span_4](start_span)routes/**: API endpoint definitions[span_4](end_span)
+* **[span_5](start_span)middleware/**: JWT verification, RBAC, and validation[span_5](end_span)
+* **[span_6](start_span)config/**: Database and environment configurations[span_6](end_span)
+---
 ##  Database Structure
 1.  **Users**: Stores hashed passwords, emails, and role references.
 2.  **Roles**: Managed roles (`user`, `moderator`, `admin`).
