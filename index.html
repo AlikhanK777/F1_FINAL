@@ -41,7 +41,7 @@
             z-index: -1;
         }
 
-        
+        /* --- МОДАЛЬНОЕ ОКНО --- */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -98,18 +98,30 @@
 
         /* --- ИНТЕРФЕЙС ПАНЕЛИ --- */
         .theme-toggle { position: fixed; top: 20px; right: 20px; background: var(--main-accent); color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-family: 'Racing Sans One', sans-serif; z-index: 100; box-shadow: 0 0 15px var(--glow); transition: 0.3s; }
+        .theme-toggle:hover { transform: scale(1.05); }
+
         h1 { font-family: 'Racing Sans One', sans-serif; color: var(--main-accent); text-transform: uppercase; font-size: 3.5rem; text-shadow: 0 0 20px var(--glow); margin-bottom: 20px; text-align: center; }
+        
         .login-card, .admin-panel { background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 15px; width: 380px; color: black; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8); text-align: center; }
+        
         .input-group { display: flex; flex-direction: column; align-items: center; width: 100%; }
         input { width: 90%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 8px; outline: none; box-sizing: border-box; }
-        input:focus { border-color: var(--main-accent); }
-        .btn-action { width: 100%; padding: 14px; background: var(--main-accent); color: white; border: none; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+        input:focus { border-color: var(--main-accent); box-shadow: 0 0 10px var(--glow); }
+        
+        .btn-action { width: 100%; padding: 14px; background: var(--main-accent); color: white; border: none; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; margin-top: 5px; }
+        .btn-action:hover { filter: brightness(1.2); transform: translateY(-2px); }
+
+        /* --- ПОИСК --- */
+        #search-driver { margin-top: 15px; border-color: var(--main-accent); display: none; }
+
+        /* --- СПИСОК --- */
         #driver-list { margin-top: 30px; width: 100%; max-width: 500px; }
         .driver-item { background: rgba(21, 21, 30, 0.9); padding: 15px; margin-bottom: 12px; border-left: 6px solid var(--main-accent); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; cursor: pointer; }
         .driver-name { color: white; font-weight: bold; font-size: 1.1rem; }
         .driver-team { color: var(--f1-red-fixed); font-family: 'Racing Sans One'; font-size: 0.9rem; }
         .driver-item:hover { transform: translateX(10px); box-shadow: 0 0 20px var(--glow); }
-        .status-badge { position: fixed; bottom: 15px; right: 15px; background: rgba(0,0,0,0.85); padding: 8px 16px; border-radius: 30px; font-size: 11px; border: 1px solid var(--main-accent); display: flex; align-items: center; gap: 10px; transition: 0.3s; }
+
+        .status-badge { position: fixed; bottom: 15px; right: 15px; background: rgba(0,0,0,0.85); padding: 8px 16px; border-radius: 30px; font-size: 11px; border: 1px solid var(--main-accent); display: flex; align-items: center; gap: 10px; z-index: 100; }
         .dot { width: 10px; height: 10px; border-radius: 50%; transition: 0.5s; }
     </style>
 </head>
@@ -126,7 +138,7 @@
     <button class="theme-toggle" onclick="toggleTurbo()">TURBO MODE</button>
     <audio id="f1-sound" src="nyoom.mp3" preload="auto"></audio>
 
-    <h1>F1 Authentication</h1>
+    <h1>F1 Paddock</h1>
 
     <div class="login-card" id="login-form">
         <h3>Admin Access</h3>
@@ -138,8 +150,9 @@
     </div>
 
     <div class="admin-panel" id="admin-panel" style="display: none;">
-        <h3>Paddock Control</h3>
-        <button class="btn-action" onclick="getDrivers()">Show Drivers</button>
+        <h3>Control Panel</h3>
+        <input type="text" id="search-driver" placeholder="Search driver..." onkeyup="filterDrivers()">
+        <button class="btn-action" onclick="getDrivers()">Refresh Drivers</button>
         <button class="btn-action" style="margin-top:10px; background:#333;" onclick="logout()">Logout</button>
     </div>
 
@@ -147,11 +160,12 @@
 
     <div class="status-badge">
         <div id="status-dot" class="dot" style="background: #555;"></div>
-        <span id="status-text">SYSTEM STATUS: CHECKING...</span>
+        <span id="status-text">SYSTEM: INITIALIZING...</span>
     </div>
 
     <script>
         const API_URL = "http://localhost:8080/api/";
+        let allDrivers = []; // Хранилище для поиска
 
         function openPhoto(name, serverPhoto, isFirst) {
             const modal = document.getElementById('driver-modal');
@@ -159,28 +173,21 @@
             const modalName = document.getElementById('modal-name');
             
             modalName.innerText = name;
-            
             let photoPath = 'image.png'; 
             const lowerName = name.toLowerCase();
 
-            
             if (isFirst || lowerName.includes("hamilton") || lowerName.includes("alikhan")) {
                 photoPath = 'ak.png';
-            } 
-            
-            else if (serverPhoto) {
+            } else if (serverPhoto) {
                 photoPath = serverPhoto;
-            } 
-           
-            else {
+            } else {
                 if (lowerName.includes("verstappen")) photoPath = 'MV.avif';
                 else if (lowerName.includes("leclerc")) photoPath = 'CL.avif';
                 else if (lowerName.includes("alonso")) photoPath = 'FA.avif';
                 else if (lowerName.includes("russell")) photoPath = 'GR.avif';
             }
 
-            
-            modalImg.src = photoPath + "?v=" + new Date().getTime();
+            modalImg.src = photoPath;
             modal.style.display = 'flex';
         }
 
@@ -192,17 +199,17 @@
             const dot = document.getElementById('status-dot');
             const text = document.getElementById('status-text');
             try {
-                const res = await fetch(API_URL + "drivers", { method: 'GET' });
+                await fetch(API_URL + "drivers", { method: 'GET' });
                 dot.style.background = "#00ff00";
                 dot.style.boxShadow = "0 0 10px #00ff00";
-                text.innerText = "SYSTEM STATUS: ONLINE";
+                text.innerText = "SYSTEM: ONLINE";
             } catch (e) {
                 dot.style.background = "#ff0000";
                 dot.style.boxShadow = "0 0 10px #ff0000";
-                text.innerText = "SYSTEM STATUS: OFFLINE";
+                text.innerText = "SYSTEM: OFFLINE";
             }
         }
-        setInterval(checkApi, 3000); checkApi();
+        setInterval(checkApi, 5000); checkApi();
 
         function toggleTurbo() {
             document.body.classList.toggle('turbo-mode');
@@ -223,11 +230,16 @@
                 const data = await res.json();
                 if (res.ok) {
                     localStorage.setItem("user", JSON.stringify(data));
-                    document.getElementById("login-form").style.display = "none";
-                    document.getElementById("admin-panel").style.display = "block";
-                    getDrivers();
-                } else { alert("Error: " + data.message); }
-            } catch (e) { alert("Server offline. Запусти node server.js!"); }
+                    showPanel();
+                } else { alert("Login failed: " + data.message); }
+            } catch (e) { alert("Server error. Is Node.js running?"); }
+        }
+
+        function showPanel() {
+            document.getElementById("login-form").style.display = "none";
+            document.getElementById("admin-panel").style.display = "block";
+            document.getElementById("search-driver").style.display = "block";
+            getDrivers();
         }
 
         async function getDrivers() {
@@ -237,33 +249,38 @@
                 const res = await fetch(API_URL + "drivers", {
                     headers: { "x-access-token": user.accessToken }
                 });
-                const drivers = await res.json();
-                const list = document.getElementById("driver-list");
-                list.innerHTML = "";
+                allDrivers = await res.json();
+                renderDrivers(allDrivers);
+            } catch (e) { console.error("Load error"); }
+        }
 
-                drivers.forEach((d, index) => {
-                    const item = document.createElement("div");
-                    item.className = "driver-item";
-                    
-                    
-                    item.onclick = () => openPhoto(d.name, d.photo, index === 0); 
-                    
-                    item.innerHTML = `
-                        <span class="driver-name">${d.name}</span>
-                        <span class="driver-team">${d.team}</span>
-                    `;
-                    list.appendChild(item);
-                });
-            } catch (e) { console.error("Ошибка загрузки"); }
+        function renderDrivers(data) {
+            const list = document.getElementById("driver-list");
+            list.innerHTML = "";
+            data.forEach((d, index) => {
+                const item = document.createElement("div");
+                item.className = "driver-item";
+                item.onclick = () => openPhoto(d.name, d.photo, index === 0); 
+                item.innerHTML = `
+                    <span class="driver-name">${d.name}</span>
+                    <span class="driver-team">${d.team}</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function filterDrivers() {
+            const query = document.getElementById("search-driver").value.toLowerCase();
+            const filtered = allDrivers.filter(d => 
+                d.name.toLowerCase().includes(query) || 
+                d.team.toLowerCase().includes(query)
+            );
+            renderDrivers(filtered);
         }
 
         function logout() { localStorage.removeItem("user"); location.reload(); }
         
-        if(localStorage.getItem("user")) {
-            document.getElementById("login-form").style.display = "none";
-            document.getElementById("admin-panel").style.display = "block";
-            getDrivers();
-        }
+        if(localStorage.getItem("user")) { showPanel(); }
     </script>
 </body>
 </html>
